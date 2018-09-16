@@ -1,0 +1,104 @@
+---
+title: "BIOS719 HW 03 | Iterated Weighted Least Square"
+output: html_notebook
+---
+
+
+# Set environment
+```{r}
+
+```
+
+
+# Import data
+
+
+```{r}
+y <- c( 2,  3, 6, 7, 8, 9, 10, 12, 15)
+x <- c(-1, -1, 0, 0, 0, 0,  1,  1,  1)
+```
+
+
+# Q1 Fit model $\log{E[Y_i]} = \beta_1 + \beta_2 x_i$ with the glm function in R
+
+Poisson regression using a log link
+```{r}
+### family: Poisson
+### link  : log
+res <- glm(y ~ x, family = poisson(link = "log"))
+summary(res)
+```
+
+From the summary, the glm function return the formula  
+Note: $\beta: estimate (s.e.)$
+
+$$\log{E[Y_i]} = 1.89 (0.14) + 0.67 (0.18) x_i$$
+
+
+# Q2 write an iteratively reweighted least squares R function to solve the problem in Q1
+
+
+
+```{r}
+### set helper functions to perform iterative reweighted least squares
+get_z <- function(y, X, beta, eta){
+    #
+    #======================
+    return(eta + y * exp(-eta) - 1)
+}
+
+get_w <- function(y, X, beta, eta){
+    #
+    #======================
+    dim(eta) <- NULL
+    return(diag(exp(eta)))
+}
+
+### Kernel functions of iterative reweighted least squares
+get_next_beta <- function(y, X, beta, my_get_w, my_get_z){
+    #
+    #======================
+    eta <- X %*% beta
+    z   <- my_get_z(y, X, beta, eta)
+    W   <- my_get_w(y, X, beta, eta)
+    return(solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z)
+}
+
+iter_reweight_lsq <- function(y, X, beta, my_get_w, my_get_z, num_iter = 100){
+    #
+    #======================
+    ###
+    res <- list()
+    
+    ###
+    for(dummy_num in 1:50){
+        beta <- get_next_beta(y, X, beta, my_get_w, my_get_z)
+    } # end for loop
+    res$beta_est <- beta
+    
+    ###
+    eta <- X %*% beta
+    W <- my_get_w(y, X, beta, eta)
+    res$beta_cov <- solve(t(X) %*% W %*% X)
+    
+    ###
+    return(res)
+}
+```
+
+
+```{r}
+beta <- c(2, 2)
+X <- cbind(rep(1, length(x)), x)
+
+res <- iter_reweight_lsq(y, X, beta, get_w, get_z)
+
+print(res)
+```
+
+
+
+```{r}
+diag(res$beta_cov)^(0.5)
+```
+

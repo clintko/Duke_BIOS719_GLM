@@ -4,24 +4,21 @@ output: html_notebook
 ---
 
 
-# Set environment
-```{r}
+# Background
 
-```
-
+This is the iterated weighted least square of a Poisson regression with a log link.  
 
 # Import data
 
-
+Consider example 4.4 with data in Table 4.3 (as in class)
 ```{r}
 y <- c( 2,  3, 6, 7, 8, 9, 10, 12, 15)
 x <- c(-1, -1, 0, 0, 0, 0,  1,  1,  1)
 ```
 
-
 # Q1 Fit model $\log{E[Y_i]} = \beta_1 + \beta_2 x_i$ with the glm function in R
 
-Poisson regression using a log link
+Using the glm function to perform Poisson regression with a log link
 ```{r}
 ### family: Poisson
 ### link  : log
@@ -30,25 +27,50 @@ summary(res)
 ```
 
 From the summary, the glm function return the formula  
-Note: $\beta: estimate (s.e.)$
+Note: $\beta: \text{estimate (s.e.)}$
 
 $$\log{E[Y_i]} = 1.89 (0.14) + 0.67 (0.18) x_i$$
 
 
 # Q2 write an iteratively reweighted least squares R function to solve the problem in Q1
 
+### Derive the equations
+
+From the lecture or textbook, we know that:
+$$z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i)$$
 
 
+$$\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2$$
+
+with the log link and Poisson regression, we can know that:
+$$\begin{cases}
+g(\mu_i) = \log{\mu_i} = \eta \\
+\mu_i = \exp{ \{ \eta_i \}}   \\
+\frac{\partial \eta_i}{\partial \mu_i} = \frac{1}{\mu_i} \\
+\frac{\partial \mu_i}{\partial \eta_i} = \mu_i \\
+\mu_i = \text{var}(Y_i)
+\end{cases}$$
+
+
+substitue what we know to calculate z and W
+
+$$z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i) = \eta_i + \exp{\{-\mu_i\}} \Big(y_i - \exp{\{\mu_i\}} \Big) = \eta_i + y_i \exp{\{-\mu_i\}} - 1$$
+
+$$\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2 = \exp{\{-\eta_i\}} \mu_i^2 = \exp{\{-\eta_i\}} \exp{\{\eta_i\}} \exp{\{\eta_i\}} = \exp{\{\eta_i\}}$$
+
+### Implement iteratively reweighted least squares 
+
+Write function to perform iteratively reweighted least squares
 ```{r}
 ### set helper functions to perform iterative reweighted least squares
 get_z <- function(y, X, beta, eta){
-    #
+    # get next z vector
     #======================
     return(eta + y * exp(-eta) - 1)
 }
 
 get_w <- function(y, X, beta, eta){
-    #
+    # get next W matrix
     #======================
     dim(eta) <- NULL
     return(diag(exp(eta)))
@@ -56,7 +78,7 @@ get_w <- function(y, X, beta, eta){
 
 ### Kernel functions of iterative reweighted least squares
 get_next_beta <- function(y, X, beta, my_get_w, my_get_z){
-    #
+    # get next parameters
     #======================
     eta <- X %*% beta
     z   <- my_get_z(y, X, beta, eta)
@@ -65,40 +87,61 @@ get_next_beta <- function(y, X, beta, my_get_w, my_get_z){
 }
 
 iter_reweight_lsq <- function(y, X, beta, my_get_w, my_get_z, num_iter = 100){
-    #
+    # iteratively reweighted least squares
     #======================
-    ###
+    ### initialization
     res <- list()
     
-    ###
+    ### loop to update the beta
     for(dummy_num in 1:50){
         beta <- get_next_beta(y, X, beta, my_get_w, my_get_z)
     } # end for loop
-    res$beta_est <- beta
     
-    ###
+    ### store results and calculate final eta & covariance matrix of beta
+    res$beta_est <- beta
     eta <- X %*% beta
     W <- my_get_w(y, X, beta, eta)
     res$beta_cov <- solve(t(X) %*% W %*% X)
     
-    ###
     return(res)
 }
 ```
 
-
+perform iterative reweighted least squares of the data
 ```{r}
-beta <- c(2, 2)
+### intialize the first beta
+beta <- c(7, 5)
+
+### set up design matrix
 X <- cbind(rep(1, length(x)), x)
 
+### iterated reweighted least squares
 res <- iter_reweight_lsq(y, X, beta, get_w, get_z)
-
 print(res)
 ```
 
 
 
+# Q3 Compare values obtained in (a) and (b) with results in Q1
+
+Here I have the same values obtained in Q2(a)(b) and Q1
+
+the results of Q1
 ```{r}
-diag(res$beta_cov)^(0.5)
+res <- glm(y ~ x, family = poisson(link = "log"))
+coef(summary(res))
 ```
 
+
+the results from Q2(a) and (b)
+```{r}
+cat("",
+    "Beta estimates\n",
+    as.vector(res$beta_est),
+    "\n----------------------------------\n",
+
+    # standard error of the beta 
+    # (the square root of the diaganol of beta covariance)
+    "standard error of Beta estimates\n",
+    diag(res$beta_cov)^(0.5))
+```

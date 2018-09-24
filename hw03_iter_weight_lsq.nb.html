@@ -176,15 +176,13 @@ $(document).ready(function () {
 
 
 <!-- rnb-text-begin -->
-<div id="set-environment" class="section level1">
-<h1>Set environment</h1>
-<!-- rnb-text-end -->
-<!-- rnb-chunk-begin -->
-<!-- rnb-chunk-end -->
-<!-- rnb-text-begin -->
+<div id="background" class="section level1">
+<h1>Background</h1>
+<p>This is the iterated weighted least square of a Poisson regression with a log link.</p>
 </div>
 <div id="import-data" class="section level1">
 <h1>Import data</h1>
+<p>Consider example 4.4 with data in Table 4.3 (as in class)</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxueSA8LSBjKCAyLCAgMywgNiwgNywgOCwgOSwgMTAsIDEyLCAxNSlcbnggPC0gYygtMSwgLTEsIDAsIDAsIDAsIDAsICAxLCAgMSwgIDEpXG5gYGAifQ== -->
@@ -196,7 +194,7 @@ x &lt;- c(-1, -1, 0, 0, 0, 0,  1,  1,  1)</code></pre>
 </div>
 <div id="q1-fit-model-logey_i-beta_1-beta_2-x_i-with-the-glm-function-in-r" class="section level1">
 <h1>Q1 Fit model <span class="math inline">\(\log{E[Y_i]} = \beta_1 + \beta_2 x_i\)</span> with the glm function in R</h1>
-<p>Poisson regression using a log link</p>
+<p>Using the glm function to perform Poisson regression with a log link</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIGZhbWlseTogUG9pc3NvblxuIyMjIGxpbmsgIDogbG9nXG5yZXMgPC0gZ2xtKHkgfiB4LCBmYW1pbHkgPSBwb2lzc29uKGxpbmsgPSBcImxvZ1wiKSlcbnN1bW1hcnkocmVzKVxuYGBgIn0= -->
@@ -232,63 +230,87 @@ Number of Fisher Scoring iterations: 4</code></pre>
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>From the summary, the glm function return the formula<br />
-Note: <span class="math inline">\(\beta: estimate (s.e.)\)</span></p>
+Note: <span class="math inline">\(\beta: \text{estimate (s.e.)}\)</span></p>
 <p><span class="math display">\[\log{E[Y_i]} = 1.89 (0.14) + 0.67 (0.18) x_i\]</span></p>
 </div>
 <div id="q2-write-an-iteratively-reweighted-least-squares-r-function-to-solve-the-problem-in-q1" class="section level1">
 <h1>Q2 write an iteratively reweighted least squares R function to solve the problem in Q1</h1>
+<div id="derive-the-equations" class="section level3">
+<h3>Derive the equations</h3>
+<p>From the lecture or textbook, we know that: <span class="math display">\[z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i)\]</span></p>
+<p><span class="math display">\[\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2\]</span></p>
+<p>with the log link and Poisson regression, we can know that: <span class="math display">\[\begin{cases}
+g(\mu_i) = \log{\mu_i} = \eta \\
+\mu_i = \exp{ \{ \eta_i \}}   \\
+\frac{\partial \eta_i}{\partial \mu_i} = \frac{1}{\mu_i} \\
+\frac{\partial \mu_i}{\partial \eta_i} = \mu_i \\
+\mu_i = \text{var}(Y_i)
+\end{cases}\]</span></p>
+<p>substitue what we know to calculate z and W</p>
+<p><span class="math display">\[z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i) = \eta_i + \exp{\{-\mu_i\}} \Big(y_i - \exp{\{\mu_i\}} \Big) = \eta_i + y_i \exp{\{-\mu_i\}} - 1\]</span></p>
+<p><span class="math display">\[\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2 = \exp{\{-\eta_i\}} \mu_i^2 = \exp{\{-\eta_i\}} \exp{\{\eta_i\}} \exp{\{\eta_i\}} = \exp{\{\eta_i\}}\]</span></p>
+</div>
+<div id="implement-iteratively-reweighted-least-squares" class="section level3">
+<h3>Implement iteratively reweighted least squares</h3>
+<p>Write function to perform iteratively reweighted least squares</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIHNldCBoZWxwZXIgZnVuY3Rpb25zIHRvIHBlcmZvcm0gaXRlcmF0aXZlIHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlc1xuZ2V0X3ogPC0gZnVuY3Rpb24oeSwgWCwgYmV0YSwgZXRhKXtcbiAgICAjXG4gICAgIz09PT09PT09PT09PT09PT09PT09PT1cbiAgICByZXR1cm4oZXRhICsgeSAqIGV4cCgtZXRhKSAtIDEpXG59XG5nZXRfdyA8LSBmdW5jdGlvbih5LCBYLCBiZXRhLCBldGEpe1xuICAgICNcbiAgICAjPT09PT09PT09PT09PT09PT09PT09PVxuICAgIGRpbShldGEpIDwtIE5VTExcbiAgICByZXR1cm4oZGlhZyhleHAoZXRhKSkpXG59XG4jIyMgS2VybmVsIGZ1bmN0aW9ucyBvZiBpdGVyYXRpdmUgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzXG5nZXRfbmV4dF9iZXRhIDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIG15X2dldF93LCBteV9nZXRfeil7XG4gICAgI1xuICAgICM9PT09PT09PT09PT09PT09PT09PT09XG4gICAgZXRhIDwtIFggJSolIGJldGFcbiAgICB6ICAgPC0gbXlfZ2V0X3ooeSwgWCwgYmV0YSwgZXRhKVxuICAgIFcgICA8LSBteV9nZXRfdyh5LCBYLCBiZXRhLCBldGEpXG4gICAgcmV0dXJuKHNvbHZlKHQoWCkgJSolIFcgJSolIFgpICUqJSB0KFgpICUqJSBXICUqJSB6KVxufVxuaXRlcl9yZXdlaWdodF9sc3EgPC0gZnVuY3Rpb24oeSwgWCwgYmV0YSwgbXlfZ2V0X3csIG15X2dldF96LCBudW1faXRlciA9IDEwMCl7XG4gICAgI1xuICAgICM9PT09PT09PT09PT09PT09PT09PT09XG4gICAgIyMjXG4gICAgcmVzIDwtIGxpc3QoKVxuICAgIFxuICAgICMjI1xuICAgIGZvcihkdW1teV9udW0gaW4gMTo1MCl7XG4gICAgICAgIGJldGEgPC0gZ2V0X25leHRfYmV0YSh5LCBYLCBiZXRhLCBteV9nZXRfdywgbXlfZ2V0X3opXG4gICAgfSAjIGVuZCBmb3IgbG9vcFxuICAgIHJlcyRiZXRhX2VzdCA8LSBiZXRhXG4gICAgXG4gICAgIyMjXG4gICAgZXRhIDwtIFggJSolIGJldGFcbiAgICBXIDwtIG15X2dldF93KHksIFgsIGJldGEsIGV0YSlcbiAgICByZXMkYmV0YV9jb3YgPC0gc29sdmUodChYKSAlKiUgVyAlKiUgWClcbiAgICBcbiAgICAjIyNcbiAgICByZXR1cm4ocmVzKVxufVxuYGBgIn0= -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIHNldCBoZWxwZXIgZnVuY3Rpb25zIHRvIHBlcmZvcm0gaXRlcmF0aXZlIHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlc1xuZ2V0X3ogPC0gZnVuY3Rpb24oeSwgWCwgYmV0YSwgZXRhKXtcbiAgICAjIGdldCBuZXh0IHogdmVjdG9yXG4gICAgIz09PT09PT09PT09PT09PT09PT09PT1cbiAgICByZXR1cm4oZXRhICsgeSAqIGV4cCgtZXRhKSAtIDEpXG59XG5cbmdldF93IDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIGV0YSl7XG4gICAgIyBnZXQgbmV4dCBXIG1hdHJpeFxuICAgICM9PT09PT09PT09PT09PT09PT09PT09XG4gICAgZGltKGV0YSkgPC0gTlVMTFxuICAgIHJldHVybihkaWFnKGV4cChldGEpKSlcbn1cblxuIyMjIEtlcm5lbCBmdW5jdGlvbnMgb2YgaXRlcmF0aXZlIHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlc1xuZ2V0X25leHRfYmV0YSA8LSBmdW5jdGlvbih5LCBYLCBiZXRhLCBteV9nZXRfdywgbXlfZ2V0X3ope1xuICAgICMgZ2V0IG5leHQgcGFyYW1ldGVyc1xuICAgICM9PT09PT09PT09PT09PT09PT09PT09XG4gICAgZXRhIDwtIFggJSolIGJldGFcbiAgICB6ICAgPC0gbXlfZ2V0X3ooeSwgWCwgYmV0YSwgZXRhKVxuICAgIFcgICA8LSBteV9nZXRfdyh5LCBYLCBiZXRhLCBldGEpXG4gICAgcmV0dXJuKHNvbHZlKHQoWCkgJSolIFcgJSolIFgpICUqJSB0KFgpICUqJSBXICUqJSB6KVxufVxuXG5pdGVyX3Jld2VpZ2h0X2xzcSA8LSBmdW5jdGlvbih5LCBYLCBiZXRhLCBteV9nZXRfdywgbXlfZ2V0X3osIG51bV9pdGVyID0gMTAwKXtcbiAgICAjIGl0ZXJhdGl2ZWx5IHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlc1xuICAgICM9PT09PT09PT09PT09PT09PT09PT09XG4gICAgIyMjIGluaXRpYWxpemF0aW9uXG4gICAgcmVzIDwtIGxpc3QoKVxuICAgIFxuICAgICMjIyBsb29wIHRvIHVwZGF0ZSB0aGUgYmV0YVxuICAgIGZvcihkdW1teV9udW0gaW4gMTo1MCl7XG4gICAgICAgIGJldGEgPC0gZ2V0X25leHRfYmV0YSh5LCBYLCBiZXRhLCBteV9nZXRfdywgbXlfZ2V0X3opXG4gICAgfSAjIGVuZCBmb3IgbG9vcFxuICAgIFxuICAgICMjIyBzdG9yZSByZXN1bHRzIGFuZCBjYWxjdWxhdGUgZmluYWwgZXRhICYgY292YXJpYW5jZSBtYXRyaXggb2YgYmV0YVxuICAgIHJlcyRiZXRhX2VzdCA8LSBiZXRhXG4gICAgZXRhIDwtIFggJSolIGJldGFcbiAgICBXIDwtIG15X2dldF93KHksIFgsIGJldGEsIGV0YSlcbiAgICByZXMkYmV0YV9jb3YgPC0gc29sdmUodChYKSAlKiUgVyAlKiUgWClcbiAgICBcbiAgICByZXR1cm4ocmVzKVxufVxuYGBgIn0= -->
 <pre class="r"><code>### set helper functions to perform iterative reweighted least squares
 get_z &lt;- function(y, X, beta, eta){
-    #
+    # get next z vector
     #======================
     return(eta + y * exp(-eta) - 1)
 }
+
 get_w &lt;- function(y, X, beta, eta){
-    #
+    # get next W matrix
     #======================
     dim(eta) &lt;- NULL
     return(diag(exp(eta)))
 }
+
 ### Kernel functions of iterative reweighted least squares
 get_next_beta &lt;- function(y, X, beta, my_get_w, my_get_z){
-    #
+    # get next parameters
     #======================
     eta &lt;- X %*% beta
     z   &lt;- my_get_z(y, X, beta, eta)
     W   &lt;- my_get_w(y, X, beta, eta)
     return(solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% z)
 }
+
 iter_reweight_lsq &lt;- function(y, X, beta, my_get_w, my_get_z, num_iter = 100){
-    #
+    # iteratively reweighted least squares
     #======================
-    ###
+    ### initialization
     res &lt;- list()
     
-    ###
+    ### loop to update the beta
     for(dummy_num in 1:50){
         beta &lt;- get_next_beta(y, X, beta, my_get_w, my_get_z)
     } # end for loop
-    res$beta_est &lt;- beta
     
-    ###
+    ### store results and calculate final eta &amp; covariance matrix of beta
+    res$beta_est &lt;- beta
     eta &lt;- X %*% beta
     W &lt;- my_get_w(y, X, beta, eta)
     res$beta_cov &lt;- solve(t(X) %*% W %*% X)
     
-    ###
     return(res)
 }</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>perform iterative reweighted least squares of the data</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYmV0YSA8LSBjKDIsIDIpXG5YIDwtIGNiaW5kKHJlcCgxLCBsZW5ndGgoeCkpLCB4KVxucmVzIDwtIGl0ZXJfcmV3ZWlnaHRfbHNxKHksIFgsIGJldGEsIGdldF93LCBnZXRfeilcbnByaW50KHJlcylcbmBgYCJ9 -->
-<pre class="r"><code>beta &lt;- c(2, 2)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyMjIGludGlhbGl6ZSB0aGUgZmlyc3QgYmV0YVxuYmV0YSA8LSBjKDcsIDUpXG4jIyMgc2V0IHVwIGRlc2lnbiBtYXRyaXhcblggPC0gY2JpbmQocmVwKDEsIGxlbmd0aCh4KSksIHgpXG4jIyMgaXRlcmF0ZWQgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzXG5yZXMgPC0gaXRlcl9yZXdlaWdodF9sc3EoeSwgWCwgYmV0YSwgZ2V0X3csIGdldF96KVxucHJpbnQocmVzKVxuYGBgIn0= -->
+<pre class="r"><code>### intialize the first beta
+beta &lt;- c(7, 5)
+### set up design matrix
 X &lt;- cbind(rep(1, length(x)), x)
+### iterated reweighted least squares
 res &lt;- iter_reweight_lsq(y, X, beta, get_w, get_z)
 print(res)</code></pre>
 <!-- rnb-source-end -->
@@ -305,21 +327,49 @@ x -0.01419063  0.03192892</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+</div>
+</div>
+<div id="q3-compare-values-obtained-in-a-and-b-with-results-in-q1" class="section level1">
+<h1>Q3 Compare values obtained in (a) and (b) with results in Q1</h1>
+<p>Here I have the same values obtained in Q2(a)(b) and Q1</p>
+<p>the results of Q1</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuZGlhZyhyZXMkYmV0YV9jb3YpXigwLjUpXG5gYGAifQ== -->
-<pre class="r"><code>diag(res$beta_cov)^(0.5)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucmVzIDwtIGdsbSh5IH4geCwgZmFtaWx5ID0gcG9pc3NvbihsaW5rID0gXCJsb2dcIikpXG5jb2VmKHN1bW1hcnkocmVzKSlcbmBgYCJ9 -->
+<pre class="r"><code>res &lt;- glm(y ~ x, family = poisson(link = &quot;log&quot;))
+coef(summary(res))</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgICAgICAgeCBcbjAuMTQyMTEyMSAwLjE3ODY4NjYgXG4ifQ== -->
-<pre><code>                  x 
-0.1421121 0.1786866 </code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgICAgICAgIEVzdGltYXRlIFN0ZC4gRXJyb3IgICB6IHZhbHVlICAgICBQcig+fHp8KVxuKEludGVyY2VwdCkgMS44ODkyNzIwICAwLjE0MjExMjAgMTMuMjk0MjQzIDIuNDk5OTE0ZS00MFxueCAgICAgICAgICAgMC42Njk3ODU2ICAwLjE3ODY4NjYgIDMuNzQ4MzgxIDEuNzc5Nzk3ZS0wNFxuIn0= -->
+<pre><code>             Estimate Std. Error   z value     Pr(&gt;|z|)
+(Intercept) 1.8892720  0.1421120 13.294243 2.499914e-40
+x           0.6697856  0.1786866  3.748381 1.779797e-04</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>the results from Q2(a) and (b)</p>
 <!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2F0KFwiXCIsXG4gICAgXCJCZXRhIGVzdGltYXRlc1xcblwiLFxuICAgIGFzLnZlY3RvcihyZXMkYmV0YV9lc3QpLFxuICAgIFwiXFxuLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxcblwiLFxuICAgICMgc3RhbmRhcmQgZXJyb3Igb2YgdGhlIGJldGEgXG4gICAgIyAodGhlIHNxdWFyZSByb290IG9mIHRoZSBkaWFnYW5vbCBvZiBiZXRhIGNvdmFyaWFuY2UpXG4gICAgXCJzdGFuZGFyZCBlcnJvciBvZiBCZXRhIGVzdGltYXRlc1xcblwiLFxuICAgIGRpYWcocmVzJGJldGFfY292KV4oMC41KSlcbmBgYCJ9 -->
+<pre class="r"><code>cat(&quot;&quot;,
+    &quot;Beta estimates\n&quot;,
+    as.vector(res$beta_est),
+    &quot;\n----------------------------------\n&quot;,
+    # standard error of the beta 
+    # (the square root of the diaganol of beta covariance)
+    &quot;standard error of Beta estimates\n&quot;,
+    diag(res$beta_cov)^(0.5))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiIEJldGEgZXN0aW1hdGVzXG4gMS44ODkyNzIgMC42Njk3ODU2IFxuLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLVxuIHN0YW5kYXJkIGVycm9yIG9mIEJldGEgZXN0aW1hdGVzXG4gMC4xNDIxMTIxIDAuMTc4Njg2NlxuIn0= -->
+<pre><code> Beta estimates
+ 1.889272 0.6697856 
+----------------------------------
+ standard error of Beta estimates
+ 0.1421121 0.1786866</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiQklPUzcxOSBIVyAwMyB8IEl0ZXJhdGVkIFdlaWdodGVkIExlYXN0IFNxdWFyZSIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKCiMgU2V0IGVudmlyb25tZW50CmBgYHtyfQoKYGBgCgoKIyBJbXBvcnQgZGF0YQoKCmBgYHtyfQp5IDwtIGMoIDIsICAzLCA2LCA3LCA4LCA5LCAxMCwgMTIsIDE1KQp4IDwtIGMoLTEsIC0xLCAwLCAwLCAwLCAwLCAgMSwgIDEsICAxKQpgYGAKCgojIFExIEZpdCBtb2RlbCAkXGxvZ3tFW1lfaV19ID0gXGJldGFfMSArIFxiZXRhXzIgeF9pJCB3aXRoIHRoZSBnbG0gZnVuY3Rpb24gaW4gUgoKUG9pc3NvbiByZWdyZXNzaW9uIHVzaW5nIGEgbG9nIGxpbmsKYGBge3J9CiMjIyBmYW1pbHk6IFBvaXNzb24KIyMjIGxpbmsgIDogbG9nCnJlcyA8LSBnbG0oeSB+IHgsIGZhbWlseSA9IHBvaXNzb24obGluayA9ICJsb2ciKSkKc3VtbWFyeShyZXMpCmBgYAoKRnJvbSB0aGUgc3VtbWFyeSwgdGhlIGdsbSBmdW5jdGlvbiByZXR1cm4gdGhlIGZvcm11bGEgIApOb3RlOiAkXGJldGE6IGVzdGltYXRlIChzLmUuKSQKCiQkXGxvZ3tFW1lfaV19ID0gMS44OSAoMC4xNCkgKyAwLjY3ICgwLjE4KSB4X2kkJAoKCiMgUTIgd3JpdGUgYW4gaXRlcmF0aXZlbHkgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzIFIgZnVuY3Rpb24gdG8gc29sdmUgdGhlIHByb2JsZW0gaW4gUTEKCgoKYGBge3J9CiMjIyBzZXQgaGVscGVyIGZ1bmN0aW9ucyB0byBwZXJmb3JtIGl0ZXJhdGl2ZSByZXdlaWdodGVkIGxlYXN0IHNxdWFyZXMKZ2V0X3ogPC0gZnVuY3Rpb24oeSwgWCwgYmV0YSwgZXRhKXsKICAgICMKICAgICM9PT09PT09PT09PT09PT09PT09PT09CiAgICByZXR1cm4oZXRhICsgeSAqIGV4cCgtZXRhKSAtIDEpCn0KCmdldF93IDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIGV0YSl7CiAgICAjCiAgICAjPT09PT09PT09PT09PT09PT09PT09PQogICAgZGltKGV0YSkgPC0gTlVMTAogICAgcmV0dXJuKGRpYWcoZXhwKGV0YSkpKQp9CgojIyMgS2VybmVsIGZ1bmN0aW9ucyBvZiBpdGVyYXRpdmUgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzCmdldF9uZXh0X2JldGEgPC0gZnVuY3Rpb24oeSwgWCwgYmV0YSwgbXlfZ2V0X3csIG15X2dldF96KXsKICAgICMKICAgICM9PT09PT09PT09PT09PT09PT09PT09CiAgICBldGEgPC0gWCAlKiUgYmV0YQogICAgeiAgIDwtIG15X2dldF96KHksIFgsIGJldGEsIGV0YSkKICAgIFcgICA8LSBteV9nZXRfdyh5LCBYLCBiZXRhLCBldGEpCiAgICByZXR1cm4oc29sdmUodChYKSAlKiUgVyAlKiUgWCkgJSolIHQoWCkgJSolIFcgJSolIHopCn0KCml0ZXJfcmV3ZWlnaHRfbHNxIDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIG15X2dldF93LCBteV9nZXRfeiwgbnVtX2l0ZXIgPSAxMDApewogICAgIwogICAgIz09PT09PT09PT09PT09PT09PT09PT0KICAgICMjIwogICAgcmVzIDwtIGxpc3QoKQogICAgCiAgICAjIyMKICAgIGZvcihkdW1teV9udW0gaW4gMTo1MCl7CiAgICAgICAgYmV0YSA8LSBnZXRfbmV4dF9iZXRhKHksIFgsIGJldGEsIG15X2dldF93LCBteV9nZXRfeikKICAgIH0gIyBlbmQgZm9yIGxvb3AKICAgIHJlcyRiZXRhX2VzdCA8LSBiZXRhCiAgICAKICAgICMjIwogICAgZXRhIDwtIFggJSolIGJldGEKICAgIFcgPC0gbXlfZ2V0X3coeSwgWCwgYmV0YSwgZXRhKQogICAgcmVzJGJldGFfY292IDwtIHNvbHZlKHQoWCkgJSolIFcgJSolIFgpCiAgICAKICAgICMjIwogICAgcmV0dXJuKHJlcykKfQpgYGAKCgpgYGB7cn0KYmV0YSA8LSBjKDIsIDIpClggPC0gY2JpbmQocmVwKDEsIGxlbmd0aCh4KSksIHgpCgpyZXMgPC0gaXRlcl9yZXdlaWdodF9sc3EoeSwgWCwgYmV0YSwgZ2V0X3csIGdldF96KQoKcHJpbnQocmVzKQpgYGAKCgoKYGBge3J9CmRpYWcocmVzJGJldGFfY292KV4oMC41KQpgYGAKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiQklPUzcxOSBIVyAwMyB8IEl0ZXJhdGVkIFdlaWdodGVkIExlYXN0IFNxdWFyZSIKb3V0cHV0OiBodG1sX25vdGVib29rCi0tLQoKCiMgQmFja2dyb3VuZAoKVGhpcyBpcyB0aGUgaXRlcmF0ZWQgd2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlIG9mIGEgUG9pc3NvbiByZWdyZXNzaW9uIHdpdGggYSBsb2cgbGluay4gIAoKIyBJbXBvcnQgZGF0YQoKQ29uc2lkZXIgZXhhbXBsZSA0LjQgd2l0aCBkYXRhIGluIFRhYmxlIDQuMyAoYXMgaW4gY2xhc3MpCmBgYHtyfQp5IDwtIGMoIDIsICAzLCA2LCA3LCA4LCA5LCAxMCwgMTIsIDE1KQp4IDwtIGMoLTEsIC0xLCAwLCAwLCAwLCAwLCAgMSwgIDEsICAxKQpgYGAKCiMgUTEgRml0IG1vZGVsICRcbG9ne0VbWV9pXX0gPSBcYmV0YV8xICsgXGJldGFfMiB4X2kkIHdpdGggdGhlIGdsbSBmdW5jdGlvbiBpbiBSCgpVc2luZyB0aGUgZ2xtIGZ1bmN0aW9uIHRvIHBlcmZvcm0gUG9pc3NvbiByZWdyZXNzaW9uIHdpdGggYSBsb2cgbGluawpgYGB7cn0KIyMjIGZhbWlseTogUG9pc3NvbgojIyMgbGluayAgOiBsb2cKcmVzIDwtIGdsbSh5IH4geCwgZmFtaWx5ID0gcG9pc3NvbihsaW5rID0gImxvZyIpKQpzdW1tYXJ5KHJlcykKYGBgCgpGcm9tIHRoZSBzdW1tYXJ5LCB0aGUgZ2xtIGZ1bmN0aW9uIHJldHVybiB0aGUgZm9ybXVsYSAgCk5vdGU6ICRcYmV0YTogXHRleHR7ZXN0aW1hdGUgKHMuZS4pfSQKCiQkXGxvZ3tFW1lfaV19ID0gMS44OSAoMC4xNCkgKyAwLjY3ICgwLjE4KSB4X2kkJAoKCiMgUTIgd3JpdGUgYW4gaXRlcmF0aXZlbHkgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzIFIgZnVuY3Rpb24gdG8gc29sdmUgdGhlIHByb2JsZW0gaW4gUTEKCiMjIyBEZXJpdmUgdGhlIGVxdWF0aW9ucwoKRnJvbSB0aGUgbGVjdHVyZSBvciB0ZXh0Ym9vaywgd2Uga25vdyB0aGF0OgokJHogPSBcZXRhX2kgKyBcZnJhY3sxfXtcbXVfaX0gKHlfaSAtIFxtdV9pKSQkCgoKJCRcb21lZ2Ffe2lpfSA9IFxmcmFjezF9e1x0ZXh0e3Zhcn0oWV9pKX0gXEJpZyggXGZyYWN7XHBhcnRpYWwgXG11X2l9e1xwYXJ0aWFsIFxldGFfaX0gXEJpZyleMiQkCgp3aXRoIHRoZSBsb2cgbGluayBhbmQgUG9pc3NvbiByZWdyZXNzaW9uLCB3ZSBjYW4ga25vdyB0aGF0OgokJFxiZWdpbntjYXNlc30KZyhcbXVfaSkgPSBcbG9ne1xtdV9pfSA9IFxldGEgXFwKXG11X2kgPSBcZXhweyBceyBcZXRhX2kgXH19ICAgXFwKXGZyYWN7XHBhcnRpYWwgXGV0YV9pfXtccGFydGlhbCBcbXVfaX0gPSBcZnJhY3sxfXtcbXVfaX0gXFwKXGZyYWN7XHBhcnRpYWwgXG11X2l9e1xwYXJ0aWFsIFxldGFfaX0gPSBcbXVfaSBcXApcbXVfaSA9IFx0ZXh0e3Zhcn0oWV9pKQpcZW5ke2Nhc2VzfSQkCgoKc3Vic3RpdHVlIHdoYXQgd2Uga25vdyB0byBjYWxjdWxhdGUgeiBhbmQgVwoKJCR6ID0gXGV0YV9pICsgXGZyYWN7MX17XG11X2l9ICh5X2kgLSBcbXVfaSkgPSBcZXRhX2kgKyBcZXhwe1x7LVxtdV9pXH19IFxCaWcoeV9pIC0gXGV4cHtce1xtdV9pXH19IFxCaWcpID0gXGV0YV9pICsgeV9pIFxleHB7XHstXG11X2lcfX0gLSAxJCQKCiQkXG9tZWdhX3tpaX0gPSBcZnJhY3sxfXtcdGV4dHt2YXJ9KFlfaSl9IFxCaWcoIFxmcmFje1xwYXJ0aWFsIFxtdV9pfXtccGFydGlhbCBcZXRhX2l9IFxCaWcpXjIgPSBcZXhwe1x7LVxldGFfaVx9fSBcbXVfaV4yID0gXGV4cHtcey1cZXRhX2lcfX0gXGV4cHtce1xldGFfaVx9fSBcZXhwe1x7XGV0YV9pXH19ID0gXGV4cHtce1xldGFfaVx9fSQkCgojIyMgSW1wbGVtZW50IGl0ZXJhdGl2ZWx5IHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlcyAKCldyaXRlIGZ1bmN0aW9uIHRvIHBlcmZvcm0gaXRlcmF0aXZlbHkgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzCmBgYHtyfQojIyMgc2V0IGhlbHBlciBmdW5jdGlvbnMgdG8gcGVyZm9ybSBpdGVyYXRpdmUgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzCmdldF96IDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIGV0YSl7CiAgICAjIGdldCBuZXh0IHogdmVjdG9yCiAgICAjPT09PT09PT09PT09PT09PT09PT09PQogICAgcmV0dXJuKGV0YSArIHkgKiBleHAoLWV0YSkgLSAxKQp9CgpnZXRfdyA8LSBmdW5jdGlvbih5LCBYLCBiZXRhLCBldGEpewogICAgIyBnZXQgbmV4dCBXIG1hdHJpeAogICAgIz09PT09PT09PT09PT09PT09PT09PT0KICAgIGRpbShldGEpIDwtIE5VTEwKICAgIHJldHVybihkaWFnKGV4cChldGEpKSkKfQoKIyMjIEtlcm5lbCBmdW5jdGlvbnMgb2YgaXRlcmF0aXZlIHJld2VpZ2h0ZWQgbGVhc3Qgc3F1YXJlcwpnZXRfbmV4dF9iZXRhIDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIG15X2dldF93LCBteV9nZXRfeil7CiAgICAjIGdldCBuZXh0IHBhcmFtZXRlcnMKICAgICM9PT09PT09PT09PT09PT09PT09PT09CiAgICBldGEgPC0gWCAlKiUgYmV0YQogICAgeiAgIDwtIG15X2dldF96KHksIFgsIGJldGEsIGV0YSkKICAgIFcgICA8LSBteV9nZXRfdyh5LCBYLCBiZXRhLCBldGEpCiAgICByZXR1cm4oc29sdmUodChYKSAlKiUgVyAlKiUgWCkgJSolIHQoWCkgJSolIFcgJSolIHopCn0KCml0ZXJfcmV3ZWlnaHRfbHNxIDwtIGZ1bmN0aW9uKHksIFgsIGJldGEsIG15X2dldF93LCBteV9nZXRfeiwgbnVtX2l0ZXIgPSAxMDApewogICAgIyBpdGVyYXRpdmVseSByZXdlaWdodGVkIGxlYXN0IHNxdWFyZXMKICAgICM9PT09PT09PT09PT09PT09PT09PT09CiAgICAjIyMgaW5pdGlhbGl6YXRpb24KICAgIHJlcyA8LSBsaXN0KCkKICAgIAogICAgIyMjIGxvb3AgdG8gdXBkYXRlIHRoZSBiZXRhCiAgICBmb3IoZHVtbXlfbnVtIGluIDE6NTApewogICAgICAgIGJldGEgPC0gZ2V0X25leHRfYmV0YSh5LCBYLCBiZXRhLCBteV9nZXRfdywgbXlfZ2V0X3opCiAgICB9ICMgZW5kIGZvciBsb29wCiAgICAKICAgICMjIyBzdG9yZSByZXN1bHRzIGFuZCBjYWxjdWxhdGUgZmluYWwgZXRhICYgY292YXJpYW5jZSBtYXRyaXggb2YgYmV0YQogICAgcmVzJGJldGFfZXN0IDwtIGJldGEKICAgIGV0YSA8LSBYICUqJSBiZXRhCiAgICBXIDwtIG15X2dldF93KHksIFgsIGJldGEsIGV0YSkKICAgIHJlcyRiZXRhX2NvdiA8LSBzb2x2ZSh0KFgpICUqJSBXICUqJSBYKQogICAgCiAgICByZXR1cm4ocmVzKQp9CmBgYAoKcGVyZm9ybSBpdGVyYXRpdmUgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzIG9mIHRoZSBkYXRhCmBgYHtyfQojIyMgaW50aWFsaXplIHRoZSBmaXJzdCBiZXRhCmJldGEgPC0gYyg3LCA1KQoKIyMjIHNldCB1cCBkZXNpZ24gbWF0cml4ClggPC0gY2JpbmQocmVwKDEsIGxlbmd0aCh4KSksIHgpCgojIyMgaXRlcmF0ZWQgcmV3ZWlnaHRlZCBsZWFzdCBzcXVhcmVzCnJlcyA8LSBpdGVyX3Jld2VpZ2h0X2xzcSh5LCBYLCBiZXRhLCBnZXRfdywgZ2V0X3opCnByaW50KHJlcykKYGBgCgoKCiMgUTMgQ29tcGFyZSB2YWx1ZXMgb2J0YWluZWQgaW4gKGEpIGFuZCAoYikgd2l0aCByZXN1bHRzIGluIFExCgpIZXJlIEkgaGF2ZSB0aGUgc2FtZSB2YWx1ZXMgb2J0YWluZWQgaW4gUTIoYSkoYikgYW5kIFExCgp0aGUgcmVzdWx0cyBvZiBRMQpgYGB7cn0KcmVzIDwtIGdsbSh5IH4geCwgZmFtaWx5ID0gcG9pc3NvbihsaW5rID0gImxvZyIpKQpjb2VmKHN1bW1hcnkocmVzKSkKYGBgCgoKdGhlIHJlc3VsdHMgZnJvbSBRMihhKSBhbmQgKGIpCmBgYHtyfQpjYXQoIiIsCiAgICAiQmV0YSBlc3RpbWF0ZXNcbiIsCiAgICBhcy52ZWN0b3IocmVzJGJldGFfZXN0KSwKICAgICJcbi0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS1cbiIsCgogICAgIyBzdGFuZGFyZCBlcnJvciBvZiB0aGUgYmV0YSAKICAgICMgKHRoZSBzcXVhcmUgcm9vdCBvZiB0aGUgZGlhZ2Fub2wgb2YgYmV0YSBjb3ZhcmlhbmNlKQogICAgInN0YW5kYXJkIGVycm9yIG9mIEJldGEgZXN0aW1hdGVzXG4iLAogICAgZGlhZyhyZXMkYmV0YV9jb3YpXigwLjUpKQpgYGAK</div>
 
 
 

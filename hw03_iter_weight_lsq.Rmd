@@ -1,6 +1,9 @@
 ---
 title: "BIOS719 HW 03 | Iterated Weighted Least Square"
-output: html_notebook
+author: Kuei-Yueh (Clint) Ko
+output:
+  html_notebook: default
+  pdf_document: default
 ---
 
 

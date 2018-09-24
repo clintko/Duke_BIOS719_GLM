@@ -1,0 +1,341 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={BIOS719 HW 03 \textbar{} Iterated Weighted Least Square},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{BIOS719 HW 03 \textbar{} Iterated Weighted Least Square}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+
+\begin{document}
+\maketitle
+
+\section{Background}\label{background}
+
+This is the iterated weighted least square of a Poisson regression with
+a log link.
+
+\section{Import data}\label{import-data}
+
+Consider example 4.4 with data in Table 4.3 (as in class)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{y <-}\StringTok{ }\KeywordTok{c}\NormalTok{( }\DecValTok{2}\NormalTok{,  }\DecValTok{3}\NormalTok{, }\DecValTok{6}\NormalTok{, }\DecValTok{7}\NormalTok{, }\DecValTok{8}\NormalTok{, }\DecValTok{9}\NormalTok{, }\DecValTok{10}\NormalTok{, }\DecValTok{12}\NormalTok{, }\DecValTok{15}\NormalTok{)}
+\NormalTok{x <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\OperatorTok{-}\DecValTok{1}\NormalTok{, }\OperatorTok{-}\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{0}\NormalTok{, }\DecValTok{0}\NormalTok{,  }\DecValTok{1}\NormalTok{,  }\DecValTok{1}\NormalTok{,  }\DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\section{\texorpdfstring{Q1 Fit model
+\(\log{E[Y_i]} = \beta_1 + \beta_2 x_i\) with the glm function in
+R}{Q1 Fit model \textbackslash{}log\{E{[}Y\_i{]}\} = \textbackslash{}beta\_1 + \textbackslash{}beta\_2 x\_i with the glm function in R}}\label{q1-fit-model-logey_i-beta_1-beta_2-x_i-with-the-glm-function-in-r}
+
+Using the glm function to perform Poisson regression with a log link
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{### family: Poisson}
+\NormalTok{### link  : log}
+\NormalTok{res <-}\StringTok{ }\KeywordTok{glm}\NormalTok{(y }\OperatorTok{~}\StringTok{ }\NormalTok{x, }\DataTypeTok{family =} \KeywordTok{poisson}\NormalTok{(}\DataTypeTok{link =} \StringTok{"log"}\NormalTok{))}
+\KeywordTok{summary}\NormalTok{(res)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## glm(formula = y ~ x, family = poisson(link = "log"))
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -0.8472  -0.2601  -0.2137   0.5214   0.8788  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)   1.8893     0.1421  13.294  < 2e-16 ***
+## x             0.6698     0.1787   3.748 0.000178 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for poisson family taken to be 1)
+## 
+##     Null deviance: 18.4206  on 8  degrees of freedom
+## Residual deviance:  2.9387  on 7  degrees of freedom
+## AIC: 41.052
+## 
+## Number of Fisher Scoring iterations: 4
+\end{verbatim}
+
+From the summary, the glm function return the formula\\
+Note: \(\beta: \text{estimate (s.e.)}\)
+
+\[\log{E[Y_i]} = 1.89 (0.14) + 0.67 (0.18) x_i\]
+
+\section{Q2 write an iteratively reweighted least squares R function to
+solve the problem in
+Q1}\label{q2-write-an-iteratively-reweighted-least-squares-r-function-to-solve-the-problem-in-q1}
+
+\subsubsection{Derive the equations}\label{derive-the-equations}
+
+From the lecture or textbook, we know that:
+\[z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i)\]
+
+\[\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2\]
+
+with the log link and Poisson regression, we can know that:
+\[\begin{cases}
+g(\mu_i) = \log{\mu_i} = \eta \\
+\mu_i = \exp{ \{ \eta_i \}}   \\
+\frac{\partial \eta_i}{\partial \mu_i} = \frac{1}{\mu_i} \\
+\frac{\partial \mu_i}{\partial \eta_i} = \mu_i \\
+\mu_i = \text{var}(Y_i)
+\end{cases}\]
+
+substitue what we know to calculate z and W
+
+\[z = \eta_i + \frac{1}{\mu_i} (y_i - \mu_i) = \eta_i + \exp{\{-\mu_i\}} \Big(y_i - \exp{\{\mu_i\}} \Big) = \eta_i + y_i \exp{\{-\mu_i\}} - 1\]
+
+\[\omega_{ii} = \frac{1}{\text{var}(Y_i)} \Big( \frac{\partial \mu_i}{\partial \eta_i} \Big)^2 = \exp{\{-\eta_i\}} \mu_i^2 = \exp{\{-\eta_i\}} \exp{\{\eta_i\}} \exp{\{\eta_i\}} = \exp{\{\eta_i\}}\]
+
+\subsubsection{Implement iteratively reweighted least
+squares}\label{implement-iteratively-reweighted-least-squares}
+
+Write function to perform iteratively reweighted least squares
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{### set helper functions to perform iterative reweighted least squares}
+\NormalTok{get_z <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(y, X, beta, eta)\{}
+    \CommentTok{# get next z vector}
+    \CommentTok{#======================}
+    \KeywordTok{return}\NormalTok{(eta }\OperatorTok{+}\StringTok{ }\NormalTok{y }\OperatorTok{*}\StringTok{ }\KeywordTok{exp}\NormalTok{(}\OperatorTok{-}\NormalTok{eta) }\OperatorTok{-}\StringTok{ }\DecValTok{1}\NormalTok{)}
+\NormalTok{\}}
+
+\NormalTok{get_w <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(y, X, beta, eta)\{}
+    \CommentTok{# get next W matrix}
+    \CommentTok{#======================}
+    \KeywordTok{dim}\NormalTok{(eta) <-}\StringTok{ }\OtherTok{NULL}
+    \KeywordTok{return}\NormalTok{(}\KeywordTok{diag}\NormalTok{(}\KeywordTok{exp}\NormalTok{(eta)))}
+\NormalTok{\}}
+
+\NormalTok{### Kernel functions of iterative reweighted least squares}
+\NormalTok{get_next_beta <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(y, X, beta, my_get_w, my_get_z)\{}
+    \CommentTok{# get next parameters}
+    \CommentTok{#======================}
+\NormalTok{    eta <-}\StringTok{ }\NormalTok{X }\OperatorTok{%*%}\StringTok{ }\NormalTok{beta}
+\NormalTok{    z   <-}\StringTok{ }\KeywordTok{my_get_z}\NormalTok{(y, X, beta, eta)}
+\NormalTok{    W   <-}\StringTok{ }\KeywordTok{my_get_w}\NormalTok{(y, X, beta, eta)}
+    \KeywordTok{return}\NormalTok{(}\KeywordTok{solve}\NormalTok{(}\KeywordTok{t}\NormalTok{(X) }\OperatorTok{%*%}\StringTok{ }\NormalTok{W }\OperatorTok{%*%}\StringTok{ }\NormalTok{X) }\OperatorTok{%*%}\StringTok{ }\KeywordTok{t}\NormalTok{(X) }\OperatorTok{%*%}\StringTok{ }\NormalTok{W }\OperatorTok{%*%}\StringTok{ }\NormalTok{z)}
+\NormalTok{\}}
+
+\NormalTok{iter_reweight_lsq <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(y, X, beta, my_get_w, my_get_z, }\DataTypeTok{num_iter =} \DecValTok{100}\NormalTok{)\{}
+    \CommentTok{# iteratively reweighted least squares}
+    \CommentTok{#======================}
+\NormalTok{    ### initialization}
+\NormalTok{    res <-}\StringTok{ }\KeywordTok{list}\NormalTok{()}
+    
+\NormalTok{    ### loop to update the beta}
+    \ControlFlowTok{for}\NormalTok{(dummy_num }\ControlFlowTok{in} \DecValTok{1}\OperatorTok{:}\DecValTok{50}\NormalTok{)\{}
+\NormalTok{        beta <-}\StringTok{ }\KeywordTok{get_next_beta}\NormalTok{(y, X, beta, my_get_w, my_get_z)}
+\NormalTok{    \} }\CommentTok{# end for loop}
+    
+\NormalTok{    ### store results and calculate final eta & covariance matrix of beta}
+\NormalTok{    res}\OperatorTok{$}\NormalTok{beta_est <-}\StringTok{ }\NormalTok{beta}
+\NormalTok{    eta <-}\StringTok{ }\NormalTok{X }\OperatorTok{%*%}\StringTok{ }\NormalTok{beta}
+\NormalTok{    W <-}\StringTok{ }\KeywordTok{my_get_w}\NormalTok{(y, X, beta, eta)}
+\NormalTok{    res}\OperatorTok{$}\NormalTok{beta_cov <-}\StringTok{ }\KeywordTok{solve}\NormalTok{(}\KeywordTok{t}\NormalTok{(X) }\OperatorTok{%*%}\StringTok{ }\NormalTok{W }\OperatorTok{%*%}\StringTok{ }\NormalTok{X)}
+    
+    \KeywordTok{return}\NormalTok{(res)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+perform iterative reweighted least squares of the data
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{### intialize the first beta}
+\NormalTok{beta <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{, }\DecValTok{5}\NormalTok{)}
+
+\NormalTok{### set up design matrix}
+\NormalTok{X <-}\StringTok{ }\KeywordTok{cbind}\NormalTok{(}\KeywordTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{, }\KeywordTok{length}\NormalTok{(x)), x)}
+
+\NormalTok{### iterated reweighted least squares}
+\NormalTok{res <-}\StringTok{ }\KeywordTok{iter_reweight_lsq}\NormalTok{(y, X, beta, get_w, get_z)}
+\KeywordTok{print}\NormalTok{(res)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## $beta_est
+##        [,1]
+##   1.8892720
+## x 0.6697856
+## 
+## $beta_cov
+##                         x
+##    0.02019584 -0.01419063
+## x -0.01419063  0.03192892
+\end{verbatim}
+
+\section{Q3 Compare values obtained in (a) and (b) with results in
+Q1}\label{q3-compare-values-obtained-in-a-and-b-with-results-in-q1}
+
+Here I have the same values obtained in Q2(a)(b) and Q1
+
+the results of Q1
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{res <-}\StringTok{ }\KeywordTok{glm}\NormalTok{(y }\OperatorTok{~}\StringTok{ }\NormalTok{x, }\DataTypeTok{family =} \KeywordTok{poisson}\NormalTok{(}\DataTypeTok{link =} \StringTok{"log"}\NormalTok{))}
+\KeywordTok{coef}\NormalTok{(}\KeywordTok{summary}\NormalTok{(res))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##              Estimate Std. Error   z value     Pr(>|z|)
+## (Intercept) 1.8892720  0.1421120 13.294243 2.499914e-40
+## x           0.6697856  0.1786866  3.748381 1.779797e-04
+\end{verbatim}
+
+the results from Q2(a) and (b)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{cat}\NormalTok{(}\StringTok{""}\NormalTok{,}
+    \StringTok{"Beta estimates}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{,}
+    \KeywordTok{as.vector}\NormalTok{(res}\OperatorTok{$}\NormalTok{beta_est),}
+    \StringTok{"}\CharTok{\textbackslash{}n}\StringTok{----------------------------------}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{,}
+
+    \CommentTok{# standard error of the beta }
+    \CommentTok{# (the square root of the diaganol of beta covariance)}
+    \StringTok{"standard error of Beta estimates}\CharTok{\textbackslash{}n}\StringTok{"}\NormalTok{,}
+    \KeywordTok{diag}\NormalTok{(res}\OperatorTok{$}\NormalTok{beta_cov)}\OperatorTok{^}\NormalTok{(}\FloatTok{0.5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Beta estimates
+##  
+## ----------------------------------
+##  standard error of Beta estimates
+## 
+\end{verbatim}
+
+
+\end{document}

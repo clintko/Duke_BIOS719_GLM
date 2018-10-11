@@ -18,7 +18,7 @@ source("./codesnippet_r/f.glm.diag.R")
 
 # Import data
 
-The number of deaths from leukemia and other cancers among survivors of the Hiroshima atom bomb are shown in Table 7.12, classified by teh radiation dose received. The data refer to deaths during teh period 1950-1959 among survivors who were aged 25 to 64 years in 1950 (from data set 13 of Cox and Snell 1981, attributed to Otake 1979)
+The number of deaths from leukemia and other cancers among survivors of the Hiroshima atom bomb are shown in Table 7.12, classified by teh radiation dose received. The data refer to deaths during teh period 1950-1959 among survivors who Ire aged 25 to 64 years in 1950 (from data set 13 of Cox and Snell 1981, attributed to Otake 1979)
 
 
 ```{r}
@@ -39,7 +39,7 @@ print(dat_leukemia)
 ```
 
 # Q7.1 (a)
-**Obtain a suitable model to describe the dose-response relationship between radiation and the proportional cancer mortality rates for leukemia (logistic regression)**
+**Obtain a suitable model to describe the dose-response relationship betIen radiation and the proportional cancer mortality rates for leukemia (logistic regression)**
 
 
 ```{r}
@@ -55,7 +55,7 @@ print(fit)
 
 ### First I examine the standardized deviance residual. 
 
-Based on the plot, we do not see non linear relationship between the residual and covariate "middle radiation".
+Based on the plot, I do not see non linear relationship between the residual and covariate "middle radiation".
 ```{r, fig.height = 4, fig.width = 5}
 dat = cbind(dat_leukemia, f.glm.diag(fit))
 gp  = ggplot(dat, aes(x = middle, y = sdres))
@@ -68,14 +68,14 @@ gp  = gp +
 print(gp)
 ```
 
-### Next we will see the deviance. 
+### Next observe the deviance. 
 
 Since deviance (1.020765) is much less than the degree of freedom of residuals (4), the model is accepted. If the deviance is much larger than the degree of freedom, the model needs to be improved.
 ```{r}
 summary(fit)
 ```
 
-### Then, we compare the observed and fitted probability to visualize the prediction of the model.
+### Then, I compare the observed and fitted probability to visualize the prediction of the model.
 
 The results seems acceptable when comparing the value of observed and fitted probability
 ```{r, echo = FALSE, fig.height = 4, fig.width = 4.5}
@@ -138,7 +138,7 @@ concordance <- function(model){
     
     # index
     # http://support.sas.com/kb/45/767.html
-    # http://support.sas.com/documentation/cdl/en/statug/66103/HTML/default/viewer.htm#statug_surveylogistic_details64.htm
+    # http://support.sas.com/documentation/cdl/en/statug/66103/HTML/default/vieIr.htm#statug_surveylogistic_details64.htm
     return(
         list(
             "Concordance" = concordance,
@@ -190,7 +190,7 @@ concordance(fit_n1)
 
 It turns out that the percent of concordance reaches at around 60% and the c-statistic is about 0.7, which is higher than random.
 
-Below is the ROC curve of the model we fitted.
+Below is the ROC curve of the model I fitted.
 ```{r, echo = FALSE, fig.height = 4, fig.width = 4}
 dat = data.frame(cbind(fit_n1$y, fit_n1$fitted.values))
 colnames(dat) = c('obs','fitted')
@@ -207,7 +207,7 @@ plot(rocobj,
 # 7.1 (c) 
 **Interpret the results**
 
-When other factors are fixed, we can infer that the change of odds ratio given 1 unit increase in radiation is $e^{\beta_1} = 1.01$
+When other factors are fixed, I can infer that the change of odds ratio given 1 unit increase in radiation is $e^{\beta_1} = 1.01$
 ```{r}
 exp(fit$coefficients[2])
 ```
@@ -222,7 +222,7 @@ $$g(p_i; \alpha) = log \Big\{
     \frac{ (1 - p_i)^{-\alpha} - 1 }{ \alpha }
 \Big\}$$
 
-Here we calculate the z value to fit a new model
+Here I calculate the z value to fit a new model
 ```{r}
 ### declare function to calculate z value
 dG = function(p, alpha){
@@ -241,7 +241,7 @@ fit_link = glm(cbind(leukemia, other) ~ middle + z, data = dat,
 anova(fit_link, test = "Chisq")
 ```
 
-**Since the test is not significant (pvalue = 0.53 > 0.05), we do not reject the null that $\alpha = 1$ under 0.05 level.**
+**Since the test is not significant (pvalue = 0.53 > 0.05), I do not reject the null that $\alpha = 1$ under 0.05 level.**
 
 # 7.1 (e) 
 **Provide predicted probability of leukemia (and 95% CI) for the highest dose group**
@@ -251,7 +251,7 @@ The predicted probability of leukemia for the highest dose group (middle = 250.0
 Since
 $$logit(p) = \eta = \beta_0 + \beta_1 * x$$
 
-we can derive the probability
+The probability can be derived into the formula below
 $$p = \frac{1}{1 + exp\{ -\eta \}}$$
 
 ```{r}

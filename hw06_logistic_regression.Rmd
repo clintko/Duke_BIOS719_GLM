@@ -204,7 +204,8 @@ plot(rocobj,
      print.thres=FALSE)
 ```
 
-# 7.1 (c) Interpret the results
+# 7.1 (c) 
+**Interpret the results**
 
 When other factors are fixed, we can infer that the change of odds ratio given 1 unit increase in radiation is $e^{\beta_1} = 1.01$
 ```{r}
@@ -212,7 +213,8 @@ exp(fit$coefficients[2])
 ```
 
 
-# 7.1 (d) Evaluate appropriateness of the logit link
+# 7.1 (d) 
+**Evaluate appropriateness of the logit link**
 
 In this part, I test the $alpha$ value in the general family of link function
 
@@ -241,7 +243,8 @@ anova(fit_link, test = "Chisq")
 
 **Since the test is not significant, we do not reject the null that $\alpha = 1$**
 
-# 7.1 (e) Provide predicted probability of leukemia (and 95% CI) for the highest dose group
+# 7.1 (e) 
+**Provide predicted probability of leukemia (and 95% CI) for the highest dose group**
 
 The predicted probability of leukemia for the highest dose group (middle = 250.0).
 

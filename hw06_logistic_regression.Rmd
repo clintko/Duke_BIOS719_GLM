@@ -1,0 +1,283 @@
+---
+title: "BIOS719 HW06"
+author: Kuei-Yueh (Clint) Ko
+output: html_notebook
+---
+
+# Background
+This is the homework 06 of the course BIOS719 GLM
+
+
+# Set environment
+```{r}
+library(tidyverse)
+library(pROC)
+
+source("./codesnippet_r/f.glm.diag.R")
+```
+
+# Import data
+
+The number of deaths from leukemia and other cancers among survivors of the Hiroshima atom bomb are shown in Table 7.12, classified by teh radiation dose received. The data refer to deaths during teh period 1950-1959 among survivors who were aged 25 to 64 years in 1950 (from data set 13 of Cox and Snell 1981, attributed to Otake 1979)
+
+
+```{r}
+### Data: Table 7-12.txt
+dat_leukemia = tribble(
+    ~radiation, ~leukemia, ~other, ~total,
+    "0",      13, 378, 391,
+    "1-9",     5, 200, 205,
+    "10-49",   5, 151, 156,
+    "50-99",   3,  47,  50,
+    "100-199", 4,  31,  35,
+    "200",    18,  33,  51)
+
+dat_leukemia = dat_leukemia %>% mutate(
+    middle = c(0.0, 5.0, 29.5, 74.5, 149.5, 250.0))
+
+print(dat_leukemia)
+```
+
+# Q7.1 (a)
+**Obtain a suitable model to describe the dose-response relationship between radiation and the proportional cancer mortality rates for leukemia (logistic regression)**
+
+
+```{r}
+fit = glm(cbind(leukemia, other) ~ middle, 
+          data = dat, 
+          family = binomial(link = "logit"), x = T)
+
+print(fit)
+```
+
+# Q7.2 (b)
+**Describe how will the model describe the data**
+
+### First I examine the standardized deviance residual. 
+
+Based on the plot, we do not see non linear relationship between the residual and covariate "middle radiation".
+```{r, fig.height = 4, fig.width = 5}
+dat = cbind(dat_leukemia, f.glm.diag(fit))
+gp  = ggplot(dat, aes(x = middle, y = sdres))
+gp  = gp +
+    geom_hline(yintercept = 0, lty = 2) +
+    geom_smooth(method = "loess", span = 0.9) +
+    geom_point() +
+    labs(title = "cbind(leukemia, other) ~ middle radiation",
+         x = "middle radiation", y = "standardized\ndeviane residual")
+print(gp)
+```
+
+### Next we will see the deviance. 
+
+Since deviance (1.020765) is much less than the degree of freedom of residuals (4), the model is accepted. If the deviance is much larger than the degree of freedom, the model needs to be improved.
+```{r}
+summary(fit)
+```
+
+### Then, we compare the observed and fitted probability to visualize the prediction of the model.
+
+The results seems acceptable when comparing the value of observed and fitted probability
+```{r, echo = FALSE, fig.height = 4, fig.width = 4.5}
+dat = dat_leukemia
+fitted_values = fit$fitted.values
+
+dat = as.data.frame(cbind(dat, fitted_values))
+gp = ggplot(dat, aes(x = middle)) +
+    geom_point(aes(y = leukemia / total)) +
+    geom_line( aes(y = fitted_values)) +
+    labs(title = "cbind(leukemia, other) ~ middle radiation",
+         x = "middle radiation", y = "standardized\ndeviane residual")
+print(gp)
+```
+
+
+### The performance of the model can be further examined using percent of concordance and c-statistics
+
+```{r, echo = FALSE}
+concordance <- function(model){
+    
+    # Get all actual observations and their fitted values into a frame
+    fitted <- data.frame(cbind(model$y, model$fitted.values))
+    colnames(fitted)<-c('respvar','score')
+    
+    # Subset only ones
+    ones  <- fitted[fitted[,1] == 1,]
+    # Subset only zeros
+    zeros <- fitted[fitted[,1] == 0,]
+    
+    #print(ones)
+    #print(zeros)
+    # Initialise all the values
+    pairs_tested <- 0
+    conc         <- 0
+    disc         <- 0
+    ties         <- 0
+      
+    # Get the values in a for-loop
+    for(i in 1:nrow(ones)) {
+          
+        for(j in 1:nrow(zeros)) {
+            pairs_tested<-pairs_tested + 1
+            
+            if        (ones[i, 2] >  zeros[j, 2]) { 
+                conc <- conc + 1 
+            } else if (ones[i, 2] == zeros[j, 2]){ 
+                ties <- ties + 1 
+            } else { 
+                disc <- disc + 1 
+            } # end if-else
+        } # end inner for
+    } # end outer for
+    
+    # Calculate concordance, discordance and ties
+    concordance <- conc / pairs_tested
+    discordance <- disc / pairs_tested
+    ties_perc   <- ties / pairs_tested
+    n           <- nrow(fitted)
+    
+    # index
+    # http://support.sas.com/kb/45/767.html
+    # http://support.sas.com/documentation/cdl/en/statug/66103/HTML/default/viewer.htm#statug_surveylogistic_details64.htm
+    return(
+        list(
+            "Concordance" = concordance,
+            "Discordance" = discordance,
+            "Tied"        = ties_perc,
+            "Pairs"       = pairs_tested,
+            
+            ### Somers' D
+            "Somers D"    = (concordance - discordance),
+            
+            ### Goodman-Kruskal Gamma
+            "gamma"       = (concordance - discordance) / (concordance + discordance),
+            
+            ### Kendall's Tau-a
+            "tau-a"       = (conc - disc) / (0.5 * n * (n - 1)),
+            
+            ### c-statistics
+            "c"           = auc(model$y, model$fitted.values)
+        ) # end list
+    ) # end return
+} # end func
+```
+
+First, I created the model of $n_i = 1$ situation in order to calculate the concordance and c-statistics.
+```{r}
+### create n_i = 1 situation
+dat = as.data.frame(
+    rbind(cbind(middle = rep(dat_leukemia$middle, 
+                             dat_leukemia$leukemia),           
+              n = 1, y = 1),
+          cbind(middle = rep(dat_leukemia$middle, 
+                             dat_leukemia$total - dat_leukemia$leukemia), 
+              n = 1, y = 0)
+    ) # end rbind
+) # end as.data.frame
+    
+### fit the model
+fit_n1 = glm(cbind(y, n-y) ~ middle, data = dat, 
+             family = binomial(link = "logit"))
+
+### check if the coefficients are the same
+cat("grouped data\n", fit$coefficients, "\n", "n_i = 1\n", fit_n1$coefficients)
+```
+
+I wrote the function to calculate the results. Note that the function has been tested using the class example and the output is exactly the same as SAS output.
+```{r}
+concordance(fit_n1)
+```
+
+It turns out that the percent of concordance reaches at around 60% and the c-statistic is about 0.7, which is higher than random.
+
+Below is the ROC curve of the model we fitted.
+```{r, echo = FALSE, fig.height = 4, fig.width = 4}
+dat = data.frame(cbind(fit_n1$y, fit_n1$fitted.values))
+colnames(dat) = c('obs','fitted')
+
+rocobj = roc(dat$obs, dat$fitted)
+plot(rocobj, 
+     print.auc=TRUE, auc.polygon=TRUE, 
+     #grid=c(0.1, 0.2), grid.col=c("grey90", "grey90"), 
+     max.auc.polygon=TRUE,
+     auc.polygon.col="steelblue",
+     print.thres=FALSE)
+```
+
+# 7.1 (c) Interpret the results
+
+When other factors are fixed, we can infer that the change of odds ratio given 1 unit increase in radiation is $e^{\beta_1} = 1.01$
+```{r}
+exp(fit$coefficients[2])
+```
+
+
+# 7.1 (d) Evaluate appropriateness of the logit link
+
+In this part, I test the $alpha$ value in the general family of link function
+
+$$g(p_i; \alpha) = log \Big\{ 
+    \frac{ (1 - p_i)^{-\alpha} - 1 }{ \alpha }
+\Big\}$$
+
+Here we calculate the z value to fit a new model
+```{r}
+### declare function to calculate z value
+dG = function(p, alpha){
+    log(1 - p) / ((1 - p)^alpha - 1) - alpha^{-1}
+} # end func
+
+### calcualte the z value of current fitted model with logit link (alpha = 1)
+dat   = dat_leukemia
+dat$z = dG(fit$fitted.values, 1)
+
+### fit a new model with z value
+fit_link = glm(cbind(leukemia, other) ~ middle + z, data = dat, 
+               family = binomial(link = "logit"))
+
+### test the parameter of z
+anova(fit_link, test = "Chisq")
+```
+
+**Since the test is not significant, we do not reject the null that $\alpha = 1$**
+
+# 7.1 (e) Provide predicted probability of leukemia (and 95% CI) for the highest dose group
+
+The predicted probability of leukemia for the highest dose group (middle = 250.0).
+
+Since
+$$logit(p) = \eta = \beta_0 + \beta_1 * x$$
+
+we can derive the probability
+$$p = \frac{1}{1 + exp\{ -\eta \}}$$
+
+```{r}
+beta = fit$coefficients ; names(beta) = NULL
+eta  = beta[1] + beta[2] * 250
+prob = 1 / (1 + exp(-eta))
+cat("E[P(leukemia | middle = 250] =", prob)
+```
+
+95% confidence interval of true probability given highest dose group.
+```{r}
+### our input vector
+X = cbind(c(1, 250))
+
+### covariance matrix of coefficients
+covb = summary(fit)$cov.unscaled
+
+### S.E. of eta
+se = t(X) %*% covb %*% X %>% sqrt %>% as.vector
+
+### eta = beta[1] + beta[2] * 250
+eta = t(X) %*% fit$coef %>% as.vector
+ci_eta = eta + c(-1, 1) * qnorm(1 - 0.05 / 2) * se
+names(ci_eta) = c("lower", "upper")
+
+### using the 95% CI of eta to calcualte CI of probability
+ci_prob = 1 / (1 + exp(-ci_eta))
+print(ci_prob)
+```
+
+
+

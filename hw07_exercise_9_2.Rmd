@@ -1,0 +1,84 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# About the report
+This is the homework 07 of the course BIOS719.
+
+# set environment
+```{r}
+library(tidyverse)
+```
+
+# Import data
+**The data in Table 9.13 are numbers of insurance policies, n, and numbers of claims, y, for cars in various insurance categories, CAR, tabulated by age of policy holder, AGE, and district where the policy holder lived (DIST = 1, for London and other major cities, and DIST = 0, otherwise). The table is derived from the CLAIMS data set in Aitkin et al. (2005) obtained from a paper by Baxter et al. (1980)**
+
+```{r}
+source("./data/table09_13_insurance.R")
+dat_insurance
+```
+
+# Exercise 9.2 (a)
+**Calculate the rate of claims y/n for each category and plot the rates by AGE, CAR and DIST to get an idea of the main effects of these factors.**
+```{r, fig.height = 3, fig.width = 9}
+gp = dat_insurance %>% 
+    mutate(rate = y / n) %>% 
+    select(rate, car, age, dist) %>% 
+    gather(variable, value, -rate) %>% 
+    mutate(value = as.character(value)) %>%
+    ggplot(., aes(x = value, y = rate)) +
+    geom_point() +
+    facet_wrap(~variable, scales = "free")
+    
+print(gp)
+```
+
+# Exercise 9.2 (b)
+**Use Poisson regression to estimate the main effects (each treated as categorical and modelled using indicator variables) and interaction terms.**
+
+fit the Poisson regression and treat the all variable as categorical
+```{r}
+### set car and age as factor
+df     = dat_insurance
+df$car = factor(df$car, levels = 1:4)
+df$age = factor(df$age, levels = 1:4)
+
+### design matrix of car, age, dist and interaction terms
+X = model.matrix(y ~ car + age + dist + car * age * dist, data = df)
+
+### model: Poisson regression 
+fit1 = glm(y ~ offset(log(n)) + X, 
+           family = poisson(link = "log"), 
+           data = df)
+```
+
+print out the results of the Poisson regression
+```{r}
+summary(fit1)
+```
+
+
+# Exercise 9.2 (c)
+**Based on the modelling in (b), Aitkin et al. (2005) determined that all the interactions were unimportant and decided that AGE and CAR could be treated as though they were continuous variables. Fit a model incorporating these features and compare it with the best model obtained in (b). What conclusions do you reach?**
+
+fit the model without interactions and treat variables as continuous variable
+```{r}
+fit2 = glm(y ~ offset(log(n)) + age + car + dist, 
+           family = poisson(link = "log"), 
+           data = dat_insurance)
+```
+
+print out the results of the Poisson regression
+```{r}
+summary(fit2)
+```
+
+# In addition (d)
+**Interpret the estimated coefficients of the model in (c) in terms of rate ratios**
+
+The exponential of coefficients are the rate ratio of the change in a unit of each variable by fixing other variables
+```{r}
+round(exp(fit2$coefficients[-1]), 2)
+```
+

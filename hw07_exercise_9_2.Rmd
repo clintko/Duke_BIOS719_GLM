@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "BIOS719 HW07"
 output: html_notebook
 ---
 
@@ -7,7 +7,7 @@ output: html_notebook
 This is the homework 07 of the course BIOS719.
 
 # set environment
-```{r}
+```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(lmtest)
 ```

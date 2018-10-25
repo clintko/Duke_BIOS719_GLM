@@ -9,18 +9,21 @@ This is the homework 07 of the course BIOS719.
 # set environment
 ```{r}
 library(tidyverse)
+library(lmtest)
 ```
 
 # Import data
 **The data in Table 9.13 are numbers of insurance policies, n, and numbers of claims, y, for cars in various insurance categories, CAR, tabulated by age of policy holder, AGE, and district where the policy holder lived (DIST = 1, for London and other major cities, and DIST = 0, otherwise). The table is derived from the CLAIMS data set in Aitkin et al. (2005) obtained from a paper by Baxter et al. (1980)**
 
 ```{r}
+### import the dataset
 source("./data/table09_13_insurance.R")
-dat_insurance
+head(dat_insurance)
 ```
 
 # Exercise 9.2 (a)
 **Calculate the rate of claims y/n for each category and plot the rates by AGE, CAR and DIST to get an idea of the main effects of these factors.**
+
 ```{r, fig.height = 3, fig.width = 9}
 gp = dat_insurance %>% 
     mutate(rate = y / n) %>% 
@@ -45,17 +48,139 @@ df$car = factor(df$car, levels = 1:4)
 df$age = factor(df$age, levels = 1:4)
 
 ### design matrix of car, age, dist and interaction terms
-X = model.matrix(y ~ car + age + dist + car * age * dist, data = df)
+X = model.matrix(y ~ car * age * dist, data = df)
 
 ### model: Poisson regression 
-fit1 = glm(y ~ offset(log(n)) + X, 
+fit_full = glm(y ~ offset(log(n)) + X, 
            family = poisson(link = "log"), 
            data = df)
 ```
 
 print out the results of the Poisson regression
 ```{r}
-summary(fit1)
+summary(fit_full)
+```
+
+### perform walds test to test pairwise and ternary interactions
+
+walds test statistics: under the null, the quadratic form of $\beta$ follows chi-square distribution with the degree of the number of coefficient tests.
+
+$$[\hat{\beta} - \beta]^T \text{cov}(\hat{\beta}) [\hat{\beta} - \beta] \sim \chi^2(p)$$
+
+here I am going to test if $\beta = 0$
+
+```{r}
+### get the estimate and variance of coefficient
+beta_est = coef(fit_full)
+beta_cov = summary(fit_full)$cov.unscaled
+```
+
+
+1. **Test the interaction between car and age:** The results of p-value
+```{r}
+### get the index
+idx = c(
+    "Xcar2:age2", "Xcar3:age2", "Xcar4:age2", 
+    "Xcar2:age3", "Xcar3:age3", "Xcar4:age3",     
+    "Xcar2:age4", "Xcar3:age4", "Xcar4:age4")
+
+### get the coefficient and covariance of coef
+b_est = as.matrix(beta_est[idx], ncol = 1)
+b_cov = beta_cov[idx, idx]
+
+### calculate the wald's statistic
+p = length(idx)
+wald = (t(b_est) %*% b_cov %*% b_est) %>% as.numeric
+
+### output the resutls
+cat("",
+    "Wald's statistic:  ", wald, "\n",
+    "Degree of freedom: ", p, "\n",
+    "p value:           ", 1 - pchisq(wald, df = p))
+```
+
+2. **Test the interaction between car and dist:** The results of p-value
+```{r}
+### get the index
+idx = c("Xcar2:dist", "Xcar3:dist", "Xcar4:dist")
+
+### get the coefficient and covariance of coef
+b_est = as.matrix(beta_est[idx], ncol = 1)
+b_cov = beta_cov[idx, idx]
+
+### calculate the wald's statistic
+p = length(idx)
+wald = (t(b_est) %*% b_cov %*% b_est) %>% as.numeric
+
+### output the resutls
+cat("",
+    "Wald's statistic:  ", wald, "\n",
+    "Degree of freedom: ", p, "\n",
+    "p value:           ", 1 - pchisq(wald, df = p))
+```
+
+3. **Test the interaction between age and dist:** The results of p-value
+```{r}
+### get the index
+idx = c("Xage2:dist", "Xage3:dist", "Xage4:dist")
+
+### get the coefficient and covariance of coef
+b_est = as.matrix(beta_est[idx], ncol = 1)
+b_cov = beta_cov[idx, idx]
+
+### calculate the wald's statistic
+p = length(idx)
+wald = (t(b_est) %*% b_cov %*% b_est) %>% as.numeric
+
+### output the resutls
+cat("",
+    "Wald's statistic:  ", wald, "\n",
+    "Degree of freedom: ", p, "\n",
+    "p value:           ", 1 - pchisq(wald, df = p))
+```
+
+4. **Test the interaction between age and dist:** The results of p-value
+```{r}
+### get the test terms
+idx = c(
+    "Xcar2:age2:dist", "Xcar3:age2:dist", "Xcar4:age2:dist",
+    "Xcar2:age3:dist", "Xcar3:age3:dist", "Xcar4:age3:dist",
+    "Xcar2:age4:dist", "Xcar3:age4:dist", "Xcar4:age4:dist")
+
+### get the coefficient and covariance of coef
+b_est = as.matrix(beta_est[idx], ncol = 1)
+b_cov = beta_cov[idx, idx]
+
+### calculate the wald's statistic
+p = length(idx)
+wald = (t(b_est) %*% b_cov %*% b_est) %>% as.numeric
+
+### output the resutls
+cat("",
+    "Wald's statistic:  ", wald, "\n",
+    "Degree of freedom: ", p, "\n",
+    "p value:           ", 1 - pchisq(wald, df = p))
+```
+
+Based on the results above, I would fit a new model by removing the interactions of "car vs age" and "age vs dist"
+```{r}
+### set car and age as factor
+df     = dat_insurance
+df$car = factor(df$car, levels = 1:4)
+df$age = factor(df$age, levels = 1:4)
+
+### design matrix of car, age, dist and interaction terms
+X = model.matrix(y ~ car * age + car * dist + car:age:dist, data = df)
+
+### model: Poisson regression 
+fit_sub = glm(y ~ offset(log(n)) + X, 
+              family = poisson(link = "log"), 
+              data = df)
+```
+
+
+```{r}
+summary(fit_sub)
 ```
 
 
@@ -74,6 +199,21 @@ print out the results of the Poisson regression
 summary(fit2)
 ```
 
+compare with what the model acquired in the previous problem
+```{r}
+fit_sub
+```
+
+```{r}
+fit2
+```
+
+Since this two model are nested, we can perform likelihood ratio test. The results of the test is not significant under 0.05 level. This shows that the model in (b) does not significantly perform very well when comparing to the model fit in question 9.2 (c).
+```{r}
+lrtest(fit_sub, fit2)
+```
+
+
 # In addition (d)
 **Interpret the estimated coefficients of the model in (c) in terms of rate ratios**
 
@@ -81,4 +221,9 @@ The exponential of coefficients are the rate ratio of the change in a unit of ea
 ```{r}
 round(exp(fit2$coefficients[-1]), 2)
 ```
+
+Intepretation:
+- by fixing other covariates, the rate of events y become 0.84 times lower as age increase by one unit
+- by fixing other covariates, the rate of events y become 1.22 times higher as car increase by one unit
+- by fixing other covariates, the rate of events y become 1.24 times higher as dist increase by one unit
 

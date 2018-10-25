@@ -223,6 +223,7 @@ round(exp(fit2$coefficients[-1]), 2)
 ```
 
 Intepretation:
+
 - by fixing other covariates, the rate of events y become 0.84 times lower as age increase by one unit
 - by fixing other covariates, the rate of events y become 1.22 times higher as car increase by one unit
 - by fixing other covariates, the rate of events y become 1.24 times higher as dist increase by one unit

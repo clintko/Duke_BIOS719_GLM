@@ -76,7 +76,7 @@ beta_cov = summary(fit_full)$cov.unscaled
 ```
 
 
-1. **Test the interaction between car and age:** The results of p-value
+1. **Test the interaction between car vs age:** The results of p-value do not support the interactions between car and age under 0.05 level
 ```{r}
 ### get the index
 idx = c(
@@ -99,7 +99,7 @@ cat("",
     "p value:           ", 1 - pchisq(wald, df = p))
 ```
 
-2. **Test the interaction between car and dist:** The results of p-value
+2. **Test the interaction between car vs dist:**  The results of p-value support the interactions between car and dist under 0.05 level
 ```{r}
 ### get the index
 idx = c("Xcar2:dist", "Xcar3:dist", "Xcar4:dist")
@@ -119,7 +119,7 @@ cat("",
     "p value:           ", 1 - pchisq(wald, df = p))
 ```
 
-3. **Test the interaction between age and dist:** The results of p-value
+3. **Test the interaction between age vs dist:** The results of p-value do not support the interactions between age and dist under 0.05 level
 ```{r}
 ### get the index
 idx = c("Xage2:dist", "Xage3:dist", "Xage4:dist")
@@ -139,7 +139,7 @@ cat("",
     "p value:           ", 1 - pchisq(wald, df = p))
 ```
 
-4. **Test the interaction between age and dist:** The results of p-value
+4. **Test the interaction between car vs age vs dist:** The results of p-value support the interactions between car vs age vs dist under 0.05 level
 ```{r}
 ### get the test terms
 idx = c(
